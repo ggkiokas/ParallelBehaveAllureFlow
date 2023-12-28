@@ -1,0 +1,367 @@
+# a)Tests that need db connection won't succeed
+# b)Need to replace in repo GOOGLE_SERVICE_KEY_STAGING, SF_PASS_STAGING, CM_PASS_STAGING, DB_PASS_STAGING
+# before exeuting the workflow
+# c)Also in send_slack.yml deactivate workflow_run to avoid spamming #eng-alerts
+
+# Why screenshots and .feature .json are not uploaded as artifact when sth fails (sometimes)
+  # add more input vars like:
+    # screenshot dir for failures
+
+
+# Reusable Workflow for run test in Parallel using Behave framework
+# Description:
+# This GitHub Actions workflow automates the process of running tests in parallel using Behave framework.
+# Afte the test execution an Allure report is generated on Github pages
+# It includes steps for setting up the environment, running tests, and generating reports.
+# Prerequisites:
+# - Python 
+# - For UI tests Chrome and Chromedriver are installed with steps 'Install Chrome' and 'Setup ChromeDriver'
+# - For accessing to a database, a PR must be created with the respective step that connects to the DB. Atm only Connect to Database step exists
+
+name: Reusable Workflow
+on:
+  workflow_call:
+    inputs:
+      ENV_VARS:
+        description: 'JSON-encoded key-value pairs for environment variables. Format: {"VAR1": "VALUE1", "VAR2": "VALUE2"}'
+        required: true
+        type: string
+      PATHS:
+        description: 'A JSON-encoded list of top-level file paths of feature files. Format: ["path1", "path2"]'
+        required: true
+        type: string
+      PYTHON_VERSION:
+        description: 'The version of Python to use, specified as a string (e.g., "3.9").'
+        required: true  
+        type: string
+      DB_PORT:
+        description:  'The port number for the database, specified as a string but should be an integer (e.g., "5430").'
+        required: true
+        type: string
+  
+    secrets:
+      CM_PASS_STAGING:
+        required: false
+      DB_PASSWORD_STAGING:
+        required: false
+      GOOGLE_SERVICE_KEY_STAGING:
+        required: false
+      SF_PASS_STAGING:
+        required: false
+      CLOUD_GOOGLE_SERVICE_JSON_STAGING:
+        required: false  
+
+jobs:
+  # checks inputs validity
+  validate_inputs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Validate ENV_VARS
+      run: |
+        echo "${{ inputs.ENV_VARS }}" | jq .
+        if ! echo "${{ inputs.ENV_VARS }}" | jq .; then
+          echo "ENV_VARS is not valid JSON."
+          exit 1
+        fi
+    - name: Validate PATHS
+      run: |
+        if ! echo "${{ inputs.PATHS }}" | jq -e .; then
+          echo "PATHS is not a valid JSON array."
+          exit 1
+        fi
+    - name: Validate PYTHON_VERSION
+      run: |
+        PYTHON_VER="${{ inputs.PYTHON_VERSION }}"
+        if ! [[ $PYTHON_VER =~ ^[0-9]+\.[0-9]+$ ]]; then
+          echo "PYTHON_VERSION is not in the correct format (e.g., '3.9')."
+          exit 1
+        fi
+    - name: Validate DB_PORT
+      run: |
+        DB_PORT="${{ inputs.DB_PORT }}"
+        if ! [[ $DB_PORT =~ ^[0-9]+$ ]]; then
+          echo "DB_PORT is not a valid integer."
+          exit 1
+        fi  
+
+  # finds feature files recursively based on the provided paths
+  find_feature_files:
+    needs: validate_inputs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    # This step generates a matrix of test suites based on discovered feature files.
+    - name: Discover feature files
+      id: set-matrix
+      run: |
+        # Decodes the JSON string into an array of paths
+        readarray -t paths < <(echo '${{ inputs.PATHS }}' | jq -r '.[]')
+    
+        # Find feature files in the provided paths
+        FILES=$(find "${paths[@]}" -name '*.feature' | jq -R -s -c 'split("\n")[:-1]')
+
+        JSON_FMT='{"test-suites":%s}'
+        MATRIX=$(printf "$JSON_FMT" "$FILES")
+        echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+        echo "Discovered feature files:"
+        echo "$MATRIX"
+
+  # This job runs the behave tests
+  run_tests:
+    needs: find_feature_files
+    outputs:
+      tests-result: ${{ steps.set-result.outputs.tests-result }}
+    env:
+      CM_PASS_STAGING: ${{ secrets.CM_PASS_STAGING }}
+      DB_PASSWORD_STAGING: ${{ secrets.DB_PASSWORD_STAGING }}
+      GOOGLE_SERVICE_KEY_STAGING: ${{ secrets.GOOGLE_SERVICE_KEY_STAGING }}
+      SF_PASS_STAGING: ${{ secrets.SF_PASS_STAGING }}
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.find_feature_files.outputs.matrix)}}
+    steps:
+      - name: Set Environment Variables
+        run: |
+          echo '${{ inputs.ENV_VARS }}' | jq '.' > env_vars.json
+          cat env_vars.json
+          for var in $(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' env_vars.json); do
+            echo "Setting $var"
+            echo "$var" >> $GITHUB_ENV
+          done
+        shell: bash
+
+      - name: Log input vars
+        run: |
+          echo "Browser: $BROWSER"
+          echo "Browser Version: $BROWSER_VERSION"
+          echo "CM Email: $CM_EMAIL"
+          echo "DB User: $DB_USER"
+          echo "Device View: $DEVICE_VIEW"
+          echo "Environment: $ENV"
+          echo "Machine: $MACHINE"
+          echo "SF Email: $SF_EMAIL"
+          echo "Timeout UI: $TIMEOUT_UI"
+          echo "CM_PASS_STAGING: $CM_PASS_STAGING"
+          echo "CM_PASS_STAGING: ${{ secrets.CM_PASS_STAGING }}"
+          echo "DB_PASSWORD_STAGING: ${{ secrets.DB_PASSWORD_STAGING }}"
+          echo "GOOGLE_SERVICE_KEY_STAGING: ${{ secrets.GOOGLE_SERVICE_KEY_STAGING }}"
+          echo "SF_PASS_STAGING: ${{ secrets.SF_PASS_STAGING }}"              
+
+      - name: Connect to Google Cloud SQL Database
+        continue-on-error: true 
+        uses: mattes/gce-cloudsql-proxy-action@v1
+        with:
+          creds: ${{ secrets.CLOUD_GOOGLE_SERVICE_JSON_STAGING }}
+          instance: calypso-staging-werc:europe-west3:calypso-staging-2fvg
+          port: ${{ inputs.DB_PORT }}
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        id: checkout_code
+
+      - name: Check checkout success
+        if: failure()
+        run: |
+          echo "Failed to checkout code"
+          exit 1  # This will fail the workflow if checkout fails
+
+      - name: Install Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.PYTHON_VERSION }}
+
+      - uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: requirements.txt  # this is optional
+
+      - uses: syphar/restore-pip-download-cache@v1
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+      - run: pip install -r requirements.txt  
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+      - name: Replace directory name
+        id: replace_dir_name
+        run: |
+          allure_results_dir="allure_result_${{ matrix.test-suites }}"
+          allure_results_dir="${allure_results_dir////_}"
+          allure_results_dir="${allure_results_dir//./_}"
+          echo "RESULTS_PATH=$allure_results_dir" >> $GITHUB_OUTPUT
+
+      - name: Install Chrome
+        run: sudo apt-get install google-chrome-stable
+
+      - name: Setup ChromeDriver
+        uses: nanasess/setup-chromedriver@master
+
+      - name: Run tests with behave ${{ matrix.test-suites}}
+        id: run-tests
+        continue-on-error: true
+        run: |
+          python behave_test_runner.py \
+          3 \
+          ${{ matrix.test-suites }} \
+          ${{ steps.replace_dir_name.outputs.RESULTS_PATH }}
+                   
+      - name: Output test result
+        id: set-result
+        if: steps.run-tests.outcome == 'failure'
+        run: echo "tests-result=fail" >> $GITHUB_OUTPUT
+
+      - name: Upload Screenshots (if Selenium tests failed)
+        if: steps.run-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v3
+        with:
+          name: failed-test-screenshots
+          path: screenshots/
+
+      - name: Prepare Allure history
+        run: |
+          mkdir -p allure-results
+          mv ${{ steps.replace_dir_name.outputs.RESULTS_PATH }}/* allure-results
+          ls allure-results
+
+      - name: Upload Allure results artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-results-art
+          path: allure-results
+
+      - name: Check if detailed_log.log exists
+        id: check-log-file
+        run: |
+          if [[ -f detailed_log.log ]]; then
+            echo "log-exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "log-exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload detailed logs
+        if: steps.check-log-file.outputs.exists == 'true'
+        uses: actions/upload-artifact@v2
+        with:
+          name: detailed_logs
+          path: detailed_log.log
+
+      - name: Upload Rerun Json params and Feature files (if tests failed)
+        if: steps.run-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts
+          path: |
+            ./*.json
+            ./*.feature
+
+  serve_allure_report:
+    needs: run_tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # for checking out cod
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Determine Test Result
+        id: check-test-result
+        run: |
+          TEST_RESULT="${{ needs.run_tests.outputs.tests-result }}"
+          if [[ -z "$TEST_RESULT" ]] || [[ "$TEST_RESULT" != "fail" ]]; then
+            echo "TEST_OUTCOME=pass" >> $GITHUB_ENV
+          else
+            echo "TEST_OUTCOME=fail" >> $GITHUB_ENV
+          fi
+      - name: Download Allure results artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: allure-results-art
+          path: allure-results
+
+      - name: Recreate gh-pages branch if it doesn't exist
+        run: |
+          if ! git ls-remote --quiet --heads origin gh-pages; then
+            git checkout --orphan gh-pages
+            git reset --hard
+            git commit --allow-empty -m "Recreate gh-pages branch"
+            git push origin gh-pages
+          fi
+          
+      - name: Get Allure history
+        uses: actions/checkout@v3
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Allure report action
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_history: allure-history
+          # keep_reports: 5
+
+
+      - name: Deploy Allure report to GitHub Pages
+        id: gh-pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+
+
+
+# readme.md
+# Documentation for Setting Up Secrets in [Your Workflow Name]
+# Introduction
+# This document provides guidance on setting up secrets for the [Your Workflow Name] in your GitHub repository. Secrets are used to store sensitive information like passwords, API keys, and access tokens, ensuring they are not exposed in your public codebase.
+
+# Prerequisites
+# A GitHub account and a repository where you want to use the workflow.
+# Necessary credentials that will be used as secrets (e.g., database passwords, API keys).
+# Steps to Add Secrets
+# Navigate to Your Repository Settings:
+
+# Go to your GitHub repository.
+# Click on "Settings" in the top menu.
+# Access the Secrets Section:
+
+# In the repository settings, find the "Secrets" section in the left sidebar.
+# Click on "Actions" to access the secrets for GitHub Actions.
+# Add a New Secret:
+
+# Click on "New repository secret."
+# Provide a name for your secret. This name will be used in the workflow file. For example, DB_PASSWORD_STAGING.
+# Enter the value of your secret in the provided text area.
+# Repeat for Additional Secrets:
+
+# Repeat the process for each secret that your workflow requires.
+# Common secrets for this workflow might include:
+# CM_PASS_STAGING
+# DB_PASSWORD_STAGING
+# GOOGLE_SERVICE_KEY_STAGING
+# SF_PASS_STAGING
+# CLOUD_GOOGLE_SERVICE_JSON_STAGING
+# Using Secrets in the Workflow
+# In the workflow file, you can use these secrets with the ${{ secrets.SECRET_NAME }} syntax. For example:
+
+# yaml
+# Copy code
+# env:
+#   DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGING }}
+# This will pass the secret value to the environment variable DB_PASSWORD during the workflow execution.
+
+# Security Considerations
+# Do not share your secrets publicly.
+# Review GitHub's best practices for using secrets in GitHub Actions.
+# Regularly rotate your secrets to maintain security.
