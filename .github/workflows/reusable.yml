@@ -7,17 +7,6 @@
   # add more input vars like:
     # screenshot dir for failures
 
-
-# Reusable Workflow for run test in Parallel using Behave framework
-# Description:
-# This GitHub Actions workflow automates the process of running tests in parallel using Behave framework.
-# Afte the test execution an Allure report is generated on Github pages
-# It includes steps for setting up the environment, running tests, and generating reports.
-# Prerequisites:
-# - Python 
-# - For UI tests Chrome and Chromedriver are installed with steps 'Install Chrome' and 'Setup ChromeDriver'
-# - For accessing to a database, a PR must be created with the respective step that connects to the DB. Atm only Connect to Database step exists
-
 name: Reusable Workflow
 on:
   workflow_call:
@@ -308,49 +297,3 @@ jobs:
           publish_dir: allure-history
 
 
-
-
-# readme.md
-# Documentation for Setting Up Secrets in [Your Workflow Name]
-# Introduction
-# This document provides guidance on setting up secrets for the [Your Workflow Name] in your GitHub repository. Secrets are used to store sensitive information like passwords, API keys, and access tokens, ensuring they are not exposed in your public codebase.
-
-# Prerequisites
-# A GitHub account and a repository where you want to use the workflow.
-# Necessary credentials that will be used as secrets (e.g., database passwords, API keys).
-# Steps to Add Secrets
-# Navigate to Your Repository Settings:
-
-# Go to your GitHub repository.
-# Click on "Settings" in the top menu.
-# Access the Secrets Section:
-
-# In the repository settings, find the "Secrets" section in the left sidebar.
-# Click on "Actions" to access the secrets for GitHub Actions.
-# Add a New Secret:
-
-# Click on "New repository secret."
-# Provide a name for your secret. This name will be used in the workflow file. For example, DB_PASSWORD_STAGING.
-# Enter the value of your secret in the provided text area.
-# Repeat for Additional Secrets:
-
-# Repeat the process for each secret that your workflow requires.
-# Common secrets for this workflow might include:
-# CM_PASS_STAGING
-# DB_PASSWORD_STAGING
-# GOOGLE_SERVICE_KEY_STAGING
-# SF_PASS_STAGING
-# CLOUD_GOOGLE_SERVICE_JSON_STAGING
-# Using Secrets in the Workflow
-# In the workflow file, you can use these secrets with the ${{ secrets.SECRET_NAME }} syntax. For example:
-
-# yaml
-# Copy code
-# env:
-#   DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGING }}
-# This will pass the secret value to the environment variable DB_PASSWORD during the workflow execution.
-
-# Security Considerations
-# Do not share your secrets publicly.
-# Review GitHub's best practices for using secrets in GitHub Actions.
-# Regularly rotate your secrets to maintain security.
