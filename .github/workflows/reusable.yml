@@ -53,40 +53,28 @@ on:
 
 jobs:
   # checks inputs validity
-  # validate_inputs:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Validate ENV_VARS
-  #     run: |
-  #       echo "${{ inputs.ENV_VARS }}" | jq .
-  #       if ! echo "${{ inputs.ENV_VARS }}" | jq .; then
-  #         echo "ENV_VARS is not valid JSON."
-  #         exit 1
-  #       fi
-  #   - name: Validate PATHS
-  #     run: |
-  #       if ! echo "${{ inputs.PATHS }}" | jq -e .; then
-  #         echo "PATHS is not a valid JSON array."
-  #         exit 1
-  #       fi
-  #   - name: Validate PYTHON_VERSION
-  #     run: |
-  #       PYTHON_VER="${{ inputs.PYTHON_VERSION }}"
-  #       if ! [[ $PYTHON_VER =~ ^[0-9]+\.[0-9]+$ ]]; then
-  #         echo "PYTHON_VERSION is not in the correct format (e.g., '3.9')."
-  #         exit 1
-  #       fi
-  #   - name: Validate DB_PORT
-  #     run: |
-  #       DB_PORT="${{ inputs.DB_PORT }}"
-  #       if ! [[ $DB_PORT =~ ^[0-9]+$ ]]; then
-  #         echo "DB_PORT is not a valid integer."
-  #         exit 1
-  #       fi  
+  validate_inputs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Validate PYTHON_VERSION
+      run: |
+        PYTHON_VER="${{ inputs.PYTHON_VERSION }}"
+        if ! [[ $PYTHON_VER =~ ^[0-9]+\.[0-9]+$ ]]; then
+          echo "PYTHON_VERSION is not in the correct format (e.g., '3.9')."
+          exit 1
+        fi
+    - name: Validate DB_PORT
+      run: |
+        DB_PORT="${{ inputs.DB_PORT }}"
+        if ! [[ $DB_PORT =~ ^[0-9]+$ ]]; then
+          echo "DB_PORT is not a valid integer."
+          exit 1
+        fi  
 
   # finds feature files recursively based on the provided paths
+  # checks also the validity of input PATHS
   find_feature_files:
-    # needs: validate_inputs
+    needs: validate_inputs
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -125,6 +113,7 @@ jobs:
       fail-fast: false
       matrix: ${{fromJson(needs.find_feature_files.outputs.matrix)}}
     steps:
+      # checks also the validity of input ENV_VARS
       - name: Set Environment Variables
         run: |
           echo '${{ inputs.ENV_VARS }}' | jq '.' > env_vars.json
