@@ -18,19 +18,23 @@ reuse_job:
   with:
     ENV_VARS: |
       {
-        "DEVICE_VIEW": "${{ needs.first_job.outputs.DEVICE_VIEW }}",
-        "ENV": "${{ needs.first_job.outputs.ENV }}",
-        "MACHINE": "${{ needs.first_job.outputs.MACHINE }}",
-        "SF_EMAIL": "${{ needs.first_job.outputs.SF_EMAIL }}",
-        "TIMEOUT_UI": "${{ needs.first_job.outputs.TIMEOUT_UI }}"
+        "YOUR_ENV_VAR1": "${{ needs.first_job.outputs.ENV_VAR1 }}",
+        "YOUR_ENV_VAR2": "${{ needs.first_job.outputs.ENV_VAR2 }}",
+        "YOUR_ENV_VAR2": "ENV_VAR3"
       }
-    PATHS: '["backend/behave/sf_app", "frontend/selenium_wd/behave/sf_app","frontend/selenium_wd/behave/cm_app"]'
+    PATHS: '["backend/behave","frontend/selenium_wd/behave/app2/myfeaturefile.feature"]'
     PYTHON_VERSION: "3.9"
     DB_PORT: "5430"
 ```
+ENV_VARS allows you to define environment variables that will be used in your test execution environment.
+
+PATHS specifies the locations of the Behave feature files that you want to run in parallel.
+In the example, all feature files in the backend/behave directory and a specific feature file frontend/selenium_wd/behave/app2/myfeaturefile.feature will be executed.
+
 ## General Information
-- Python is installed and the version can be specified as input
+- Python 3 is installed and the version can be specified as input
 - For UI tests, Chrome and Chromedriver are installed in steps 'Install Chrome' and 'Setup ChromeDriver'.
+
 ## Database Connection
 Currently, the workflow supports connections to Google Cloud SQL Database in step 'Connect to Google Cloud SQL Database'
 To add new method for database connection follow the instructions on CONTRIBUTING.md
