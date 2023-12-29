@@ -1,12 +1,3 @@
-# a)Tests that need db connection won't succeed
-# b)Need to replace in repo GOOGLE_SERVICE_KEY_STAGING, SF_PASS_STAGING, CM_PASS_STAGING, DB_PASS_STAGING
-# before exeuting the workflow
-# c)Also in send_slack.yml deactivate workflow_run to avoid spamming #eng-alerts
-
-# Why screenshots and .feature .json are not uploaded as artifact when sth fails (sometimes)
-  # add more input vars like:
-    # screenshot dir for failures
-
 name: Reusable Workflow
 on:
   workflow_call:

@@ -1,31 +1,15 @@
 # ParallelBehaveAllureFlow
 ## Description
-ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation. Streamlines and accelerates BDD testing in CI/CD pipelines.
+ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation, streamlining and accelerating BDD testing in CI/CD pipelines. It integrates a retry mechanism within the behave_test_runner.py script, offering default retries up to 3 times, enhancing test reliability and reducing false negatives.
 
-## General Information
-- Python is installed and the version can be specified as input
-- For UI tests, Chrome and Chromedriver are installed in steps 'Install Chrome' and 'Setup ChromeDriver'.
-## Database Connection
-Currently, the workflow supports connections to Google Cloud SQL Database. To configure this connection, you need to set up the necessary secrets and specify the appropriate inputs in your workflow file. To add new method for database connection follow the instructions on CONTRIBUTING.md
-
-### Example Configuration for Google Cloud SQL:
-
-```yaml
-    steps:
-    - name: Connect to Google Cloud SQL Database
-      continue-on-error: true 
-      uses: mattes/gce-cloudsql-proxy-action@v1
-      with:
-        creds: ${{ secrets.CLOUD_GOOGLE_SERVICE_JSON_STAGING }}
-        instance: calypso-staging-werc:europe-west3:calypso-staging-2fvg
-        port: ${{ inputs.DB_PORT }}
-
-```
 
 ## Usage of workflow
 To use this workflow in your project, add a workflow file in your repository (e.g., `.github/workflows/test.yml`) with the following configuration:
 
 ```yaml
+first_job:
+    ...
+    ...
 reuse_job:
   needs: first_job
   permissions:
@@ -43,3 +27,13 @@ reuse_job:
     PATHS: '["backend/behave/sf_app", "frontend/selenium_wd/behave/sf_app","frontend/selenium_wd/behave/cm_app"]'
     PYTHON_VERSION: "3.9"
     DB_PORT: "5430"
+```
+## General Information
+- Python is installed and the version can be specified as input
+- For UI tests, Chrome and Chromedriver are installed in steps 'Install Chrome' and 'Setup ChromeDriver'.
+## Database Connection
+Currently, the workflow supports connections to Google Cloud SQL Database in step 'Connect to Google Cloud SQL Database'
+To add new method for database connection follow the instructions on CONTRIBUTING.md
+
+
+
