@@ -1,6 +1,6 @@
 # ParallelBehaveAllureFlow
 ## Description
-ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation, streamlining and accelerating BDD testing in CI/CD pipelines. It integrates a retry mechanism within the behave_test_runner.py script, offering default retries up to 3 times, enhancing test reliability and reducing false negatives. Supported Browser at the moment: Chrome
+ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation, streamlining and accelerating BDD testing in CI/CD pipelines. It integrates a retry mechanism within the behave_test_runner.py script, offering default retries up to n times, enhancing test reliability and reducing false negatives. Supported Browser at the moment: Chrome
 
 
 ## Usage of workflow
@@ -25,6 +25,11 @@ reuse_job:
     PATHS: '["backend/behave","frontend/selenium_wd/behave/app2/myfeaturefile.feature"]'
     PYTHON_VERSION: "3.9"
     DB_PORT: "5430"
+    DB_INSTANCE: "project:region:instance"
+    
+    #optional inputs
+    RETRIES_NUM: 3  #  Number of retries for failed tests. Default is 3.
+    SCREENSHOTS_PATH: 'screenshots/'  # Path to save screenshots of failed tests. Default is 'screenshots/'.
 ```
 ENV_VARS allows you to define environment variables that will be used in your test execution environment.
 

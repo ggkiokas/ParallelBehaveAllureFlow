@@ -21,8 +21,20 @@ on:
       DB_INSTANCE:
         description: 'The Google Cloud SQL instance connection name (e.g., "project:region:instance").'
         required: true
-        type: string        
-  
+        type: string
+
+      # optional
+      RETRIES_NUM:
+        description: 'Number of retries for Behave tests.'
+        required: false
+        type: number
+        default: 3        
+      SCREENSHOTS_PATH:
+        description: 'Path to the folder where screenshots will be stored.'
+        required: false
+        type: string
+        default: 'screenshots/'
+
     secrets:
       CM_PASS_STAGING:
         required: false
@@ -178,7 +190,7 @@ jobs:
         continue-on-error: true
         run: |
           python behave_test_runner.py \
-          3 \
+          ${{ inputs.RETRIES_NUM }} \
           ${{ matrix.test-suites }} \
           ${{ steps.replace_dir_name.outputs.RESULTS_PATH }}
                    
@@ -192,7 +204,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: failed-test-screenshots
-          path: screenshots/
+          path: ${{ inputs.SCREENSHOTS_PATH }}
 
       - name: Prepare Allure history
         run: |
