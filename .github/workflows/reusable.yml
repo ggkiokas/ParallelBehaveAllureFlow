@@ -18,6 +18,10 @@ on:
         description:  'The port number for the database, specified as a string but should be an integer (e.g., "5430").'
         required: true
         type: string
+      DB_INSTANCE:
+        description: 'The Google Cloud SQL instance connection name (e.g., "project:region:instance").'
+        required: true
+        type: string        
   
     secrets:
       CM_PASS_STAGING:
@@ -126,7 +130,7 @@ jobs:
         uses: mattes/gce-cloudsql-proxy-action@v1
         with:
           creds: ${{ secrets.CLOUD_GOOGLE_SERVICE_JSON_STAGING }}
-          instance: calypso-staging-werc:europe-west3:calypso-staging-2fvg
+          instance: ${{ inputs.DB_INSTANCE }}
           port: ${{ inputs.DB_PORT }}
 
       - name: Checkout repo

@@ -1,6 +1,6 @@
 # ParallelBehaveAllureFlow
 ## Description
-ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation, streamlining and accelerating BDD testing in CI/CD pipelines. It integrates a retry mechanism within the behave_test_runner.py script, offering default retries up to 3 times, enhancing test reliability and reducing false negatives.
+ParallelBehaveAllureFlow: A GitHub Actions workflow for parallel execution of Behave tests with efficient Allure report generation, streamlining and accelerating BDD testing in CI/CD pipelines. It integrates a retry mechanism within the behave_test_runner.py script, offering default retries up to 3 times, enhancing test reliability and reducing false negatives. Supported Browser at the moment: Chrome
 
 
 ## Usage of workflow
