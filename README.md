@@ -30,6 +30,13 @@ reuse_job:
     #optional inputs
     RETRIES_NUM: 3  #  Number of retries for failed tests. Default is 3.
     SCREENSHOTS_PATH: 'screenshots/'  # Path to save screenshots of failed tests. Default is 'screenshots/'.
+
+    secrets:
+      CM_PASS_STAGING: ${{ secrets.CM_PASS_STAGING }}
+      DB_PASSWORD_STAGING: ${{ secrets.DB_PASSWORD_STAGING }}
+      GOOGLE_SERVICE_KEY_STAGING: ${{ secrets.GOOGLE_SERVICE_KEY_STAGING }}
+      SF_PASS_STAGING: ${{ secrets.SF_PASS_STAGING }}
+      CLOUD_GOOGLE_SERVICE_JSON_STAGING: ${{ secrets.CLOUD_GOOGLE_SERVICE_JSON_STAGING }}
 ```
 ENV_VARS allows you to define environment variables that will be used in your test execution environment.
 

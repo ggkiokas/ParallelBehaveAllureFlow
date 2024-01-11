@@ -3,7 +3,7 @@
 # Contributing to ParallelBehaveAllureFlow
 
 ## Adding Secrets
-To contribute to the repository, especially for enhancements like database access, you may need to add new secrets:
+To contribute to the repository, you may need to add your own secrets:
 
 # Example
 Add a new secret to the existing ones
